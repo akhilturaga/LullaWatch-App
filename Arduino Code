@@ -1,0 +1,39 @@
+#include "Wire.h"
+
+const int MPU_ADDR = 0x68; // I2C address of the MPU-6050
+int16_t accelerometer_x, accelerometer_y, accelerometer_z; // variables for accelerometer raw data
+
+void setup() {
+  Serial.begin(9600); // Start Serial communication
+  Wire.begin(); // Initialize I2C communication
+  Wire.beginTransmission(MPU_ADDR); // Begin transmission to MPU-6050
+  Wire.write(0x6B); // Access power management register
+  Wire.write(0); // Wake up MPU-6050
+  Wire.endTransmission(true);
+  delay(500); // Allow sensor to stabilize
+}
+
+void loop() {
+  // Read acceleration data from MPU-6050
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x3B); // Start reading accelerometer data
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_ADDR, 6, true); // Request 6 bytes (ACCEL_X, ACCEL_Y, ACCEL_Z)
+
+  // Combine high and low bytes for each axis
+  accelerometer_x = Wire.read() << 8 | Wire.read();
+  accelerometer_y = Wire.read() << 8 | Wire.read();
+  accelerometer_z = Wire.read() << 8 | Wire.read();
+
+  // Calculate net acceleration (magnitude) in m/s²
+  float acceleration = sqrt(
+    pow(accelerometer_x, 2) +
+    pow(accelerometer_y, 2) +
+    pow(accelerometer_z, 2)
+  ) / 16384.0 * 9.81;
+
+  // Send acceleration magnitude to Serial
+  Serial.println(acceleration);
+
+  delay(100); // Send data every 100ms
+}
