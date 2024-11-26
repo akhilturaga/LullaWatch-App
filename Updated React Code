@@ -1,0 +1,65 @@
+import React, { useEffect, useState } from "react";
+import { Line } from "react-chartjs-2";
+import io from "socket.io-client";
+
+const App = () => {
+  const [chartData, setChartData] = useState({
+    labels: [], // X-axis labels (time)
+    datasets: [
+      {
+        label: "Acceleration (m/s²)",
+        data: [], // Y-axis data points
+        borderColor: "rgba(75,192,192,1)",
+        backgroundColor: "rgba(75,192,192,0.2)",
+        borderWidth: 2,
+      },
+    ],
+  });
+
+  useEffect(() => {
+    // Connect to the Node.js server
+    const socket = io("http://localhost:3001");
+
+    // Listen for 'acceleration' events from the server
+    socket.on("acceleration", (data) => {
+      // Update the chart with new data
+      setChartData((prev) => ({
+        ...prev,
+        labels: [...prev.labels, new Date().toLocaleTimeString()], // Add timestamp to labels
+        datasets: [
+          {
+            ...prev.datasets[0],
+            data: [...prev.datasets[0].data, data], // Add acceleration value to dataset
+          },
+        ],
+      }));
+    });
+
+    // Cleanup the socket connection when the component unmounts
+    return () => socket.disconnect();
+  }, []);
+
+  return (
+    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+      <h1>Real-Time Acceleration Monitoring</h1>
+      <div>
+        <h2>Acceleration Data</h2>
+        <Line
+          data={chartData}
+          options={{
+            responsive: true,
+            plugins: {
+              legend: { display: true, position: "top" },
+            },
+            scales: {
+              x: { title: { display: true, text: "Time" } },
+              y: { title: { display: true, text: "Acceleration (m/s²)" } },
+            },
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default App;
